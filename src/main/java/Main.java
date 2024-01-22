@@ -1,85 +1,68 @@
 
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-
 import java.io.*;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import static io.restassured.RestAssured.given;
-import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
-import com.aspose.cells.Workbook;
-import com.aspose.cells.Worksheet;
-import com.aspose.cells.Cells;
-import com.aspose.cells.Cell;
+
+
 public class Main {
 
     public static String token;
-    public static Date TimeStamp = new Date();
 
-    public static String key;
+    private static List<String> tokenList;
+    private static int currentIndex;
 
-    public static String value;
+    static Map<String, String> NameIdPairs = new HashMap<>();
+    public static void main(String[] args) throws Exception {
 
-    public static void main(String[] args) throws IOException, InterruptedException, FileNotFoundException, ExecutionException {
-        ItemDB.ItemApiDB();
+        createTokenArray();
 
-        File myObjPrice = new File("C:\\Users\\Artem\\IdeaProjects\\ScMonitorGit\\out\\artifacts\\ScMonitor_jar\\price.txt");
-        File myObjToken = new File("C:\\Users\\Artem\\IdeaProjects\\ScMonitorGit\\out\\artifacts\\ScMonitor_jar\\token.txt");
+        ImportExcel.Import();
 
+        ProductList.ExcelReaderExample();
 
-        Scanner sc = new Scanner(myObjToken);
-        token = sc.nextLine();
+        while (true) {
+            outputArray.clear();
 
+            List<Thread> threads = new ArrayList<>();
 
-        Scanner sc2 = new Scanner(myObjPrice);
-        while (sc2.hasNextLine()) {
-            String data = sc2.nextLine();
-            if (data.equals("")) {
-                break;
+            for (Map.Entry<String, String> entry : NameIdPairs.entrySet()) {
+                String token = getNewToken();
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            ApiCall.ApiDescription(entry.getValue(), entry.getKey(), token);
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+                );
+                thread.start();
+                threads.add(thread);
             }
-            String[] arrayOfStrings = data.split(" ");
-
-            ItemInput(arrayOfStrings[0], arrayOfStrings[1]);
+            for (Thread thread : threads) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    // Обработка прерывания
+                }
+            }
+            sendToTelegram();
+            LocalTime currentTime = LocalTime.now();
+            System.out.println("Test" + " " +currentTime);
+            sleep(5000);
         }
-
-        sc2.close();
-
-        String i = "4lml";
-        String j = "60000";
-
-        ApiCall.ApiDescription(i, j);
-        sendToTelegram();
-
-    }
+   }
 
 
-    static HashMap<String, String> InputItemDB = new HashMap<>();
-
-    static Set<String> InputItemDBKey = InputItemDB.keySet();
-
-    public static void ItemInput(String firstArg, String secondArg) {
-
-        InputItemDB.put(firstArg, secondArg);
-
-    }
-
-    public static String InputItemDBGetValue(String itemName) {
-
-        return InputItemDB.get(itemName);
-    }
-
-    static ArrayList<String> outputArray = new ArrayList<String>();
+    static final ArrayList<String> outputArray = new ArrayList<String>();
+    static HashMap<String, String> outputArrayNew = new HashMap<>();
 
     public static void sendToTelegram() throws IOException, InterruptedException {
         String separator = "===================";
@@ -87,10 +70,14 @@ public class Main {
         String bot_token = "bot6444986965:AAGDYVU7sNwLiVLxm-fobgoJoiocE7QBoDo";
 
         StringJoiner joiner = new StringJoiner("\n");
-        for (String item : outputArray) {
-            joiner.add(separator + "\n" + item.toString());
+        if (!outputArray.isEmpty()) {
+            for (String item : outputArray) {
+                joiner.add(separator + "\n"  + item.toString());
+
+            }
+            joiner.add(separator);
         }
-        joiner.add(separator);
+
 
         String myString = joiner.toString();
 
@@ -100,29 +87,28 @@ public class Main {
         RestAssured.given()
                 .queryParam("chat_id", chat_id)
                 .queryParam("text", myString)
+                .queryParam("parse_mode", "HTML")
                 .post(chatUrl);
     }
 
-    public static void excelImport() throws Exception {
+    public static String getNewToken() {
+        String currentToken = tokenList.get(currentIndex);
 
-        Workbook workbook = new Workbook("ItemPrices.xlsx"); //Возможно полный путь нужно
-        Worksheet worksheet = workbook.getWorksheets().get(0);
-        Cells cells = worksheet.getCells();
-
-        int nonEmptyCellCountInFirstColumn = 0;
-        int columnIndex = 0;
-
-        for (int row = 0; row <= cells.getMaxDataRow(); row++) {
-            Cell currentCell = cells.get(row, columnIndex);
-
-            if (currentCell.getValue() != null && !currentCell.getStringValue().trim().isEmpty()) {
-                nonEmptyCellCountInFirstColumn++;
-            } else {
-                break;
-            }
-        }
-
-
+        currentIndex = (currentIndex + 1) % tokenList.size();
+        return currentToken;
     }
-}
 
+    public static void createTokenArray() throws FileNotFoundException {
+        tokenList = new ArrayList<>();
+
+        File myObjToken = new File("C:\\Users\\Artem\\IdeaProjects\\ScMonitorGit\\out\\artifacts\\ScMonitor_jar\\token.txt");
+        Scanner sc = new Scanner(myObjToken);
+
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            tokenList.add(line);
+        }
+        sc.close();
+    }
+
+}

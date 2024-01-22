@@ -33,7 +33,7 @@ public class AuctionList {
             private int qlt;
             private int ptn;
             private double stats_random;
-            private double upgrade_bonus;
+            private Double upgrade_bonus;
             private long spawn_time;
             private String buyer;
         }
