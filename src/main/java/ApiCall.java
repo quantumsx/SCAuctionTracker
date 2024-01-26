@@ -1,6 +1,7 @@
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 
 import java.text.DecimalFormat;
 import java.time.LocalTime;
@@ -20,26 +21,33 @@ public class ApiCall {
 
         RestAssured.baseURI = "https://eapi.stalcraft.net/ru/auction/";
 
-        AuctionList auctionList = given()
+        Response response = given()
                 .contentType(ContentType.JSON)
                 .header("HostName", "eapi.stalcraft.net")
                 .header("Authorization", "Bearer" + " " + token)
                 .when()
-                .get(NewItemID + "/lots?sort=buyout_price&order=desc&limit=200&additional=true")
-                .then()
-                .extract().as(AuctionList.class);
+                .get(NewItemID + "/lots?sort=buyout_price&order=desc&limit=200&additional=true");
+
+        String contentType = response.getContentType();
+        if (contentType.equalsIgnoreCase("application/json")) {
+            AuctionList auctionList = response
+                    .then()
+                    .extract()
+                    .as(AuctionList.class);
 
 
+            if (auctionList.getLots().size() != 0) {
 
-
-        if (auctionList.getLots().size() != 0) {
-
-            for (AuctionList.AuctionItem item : auctionList.getLots()) {
-                filterAuctionItem(item, NewItemName);
+                for (AuctionList.AuctionItem item : auctionList.getLots()) {
+                    filterAuctionItem(item, NewItemName);
+                }
             }
+        } else {
+            String responseBody = response.getBody().asString();
+            int responseStatusCode = response.getStatusCode();
+            System.out.println("Received non-JSON response. Body: " + responseBody + " " + responseStatusCode);
         }
     }
-
 
     private static void filterAuctionItem(AuctionList.AuctionItem item, String NewItemName) {
 

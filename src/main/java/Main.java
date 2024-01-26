@@ -16,49 +16,38 @@ public class Main {
 
     static Map<String, String> NameIdPairs = new HashMap<>();
     public static void main(String[] args) throws Exception {
-
         createTokenArray();
-
         ImportExcel.Import();
 
         ProductList.ExcelReaderExample();
 
-        while (true) {
-            outputArray.clear();
 
+        while (true) {
             List<Thread> threads = new ArrayList<>();
 
             for (Map.Entry<String, String> entry : NameIdPairs.entrySet()) {
                 String token = getNewToken();
-                Thread thread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            ApiCall.ApiDescription(entry.getValue(), entry.getKey(), token);
-                        } catch (IOException | InterruptedException e) {
-                            e.printStackTrace();
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-                );
+                Thread thread = new Thread(new ApiThread(entry.getValue(),entry.getKey(),token));
+
                 thread.start();
                 threads.add(thread);
             }
+
+
             for (Thread thread : threads) {
                 try {
                     thread.join();
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    // Обработка прерывания
+                    e.printStackTrace();
                 }
             }
+
             sendToTelegram();
             LocalTime currentTime = LocalTime.now();
-            System.out.println("Test" + " " +currentTime);
-            sleep(5000);
+            System.out.println("Test" + " " + currentTime);
+            sleep(6000);
         }
-   }
+    }
 
 
     static final ArrayList<String> outputArray = new ArrayList<String>();
@@ -89,6 +78,8 @@ public class Main {
                 .queryParam("text", myString)
                 .queryParam("parse_mode", "HTML")
                 .post(chatUrl);
+
+        outputArray.clear();
     }
 
     public static String getNewToken() {
