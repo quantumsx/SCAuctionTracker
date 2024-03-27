@@ -13,7 +13,7 @@ public class ProductList {
 
     public static void ExcelReaderExample() throws Exception {
 
-       List<Product> productList = readProductsFromExcel("C:\\Users\\Artem\\Desktop\\ItemPrices.xlsx");
+       List<Product> productList = readProductsFromExcel("C:\\Users\\Artem\\Desktop\\SCAuction\\ItemPrices.xlsx");
 
     }
 

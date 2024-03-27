@@ -1,10 +1,13 @@
-
 import io.restassured.RestAssured;
-import java.io.*;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.time.LocalTime;
 import java.util.*;
-
-import static java.lang.Thread.sleep;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 
 public class Main {
@@ -15,43 +18,48 @@ public class Main {
     private static int currentIndex;
 
     static Map<String, String> NameIdPairs = new HashMap<>();
+
     public static void main(String[] args) throws Exception {
         createTokenArray();
         ImportExcel.Import();
 
         ProductList.ExcelReaderExample();
 
+        int numThreads = 3;
+
+        List<Runnable> tasks = new ArrayList<>();
 
         while (true) {
-            List<Thread> threads = new ArrayList<>();
+            tasks.clear();
 
             for (Map.Entry<String, String> entry : NameIdPairs.entrySet()) {
                 String token = getNewToken();
-                Thread thread = new Thread(new ApiThread(entry.getValue(),entry.getKey(),token));
-
-                thread.start();
-                threads.add(thread);
+                tasks.add(new ApiThread(entry.getValue(), entry.getKey(), token));
             }
 
+            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
 
-            for (Thread thread : threads) {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            for (Runnable task : tasks) {
+                executor.submit(task);
+            }
+
+            executor.shutdown();
+
+            try {
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
 
             sendToTelegram();
             LocalTime currentTime = LocalTime.now();
             System.out.println("Test" + " " + currentTime);
-            sleep(6000);
+
         }
     }
 
 
     static final ArrayList<String> outputArray = new ArrayList<String>();
-    static HashMap<String, String> outputArrayNew = new HashMap<>();
 
     public static void sendToTelegram() throws IOException, InterruptedException {
         String separator = "===================";
@@ -61,7 +69,7 @@ public class Main {
         StringJoiner joiner = new StringJoiner("\n");
         if (!outputArray.isEmpty()) {
             for (String item : outputArray) {
-                joiner.add(separator + "\n"  + item.toString());
+                joiner.add(separator + "\n" + item.toString());
 
             }
             joiner.add(separator);
@@ -92,7 +100,7 @@ public class Main {
     public static void createTokenArray() throws FileNotFoundException {
         tokenList = new ArrayList<>();
 
-        File myObjToken = new File("C:\\Users\\Artem\\IdeaProjects\\ScMonitorGit\\out\\artifacts\\ScMonitor_jar\\token.txt");
+        File myObjToken = new File("C:\\Users\\Artem\\Desktop\\SCAuction\\token.txt");
         Scanner sc = new Scanner(myObjToken);
 
         while (sc.hasNextLine()) {
@@ -101,5 +109,4 @@ public class Main {
         }
         sc.close();
     }
-
 }

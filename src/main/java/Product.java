@@ -6,10 +6,6 @@ public class Product {
     private int quality;
     private int potential;
 
-    public Product(String name, long price) {
-        this(name, price, 0, 0);
-    }
-
     public Product(String name, long price, int quality, int potential) {
         this.name = name;
         this.price = price;

@@ -13,7 +13,7 @@ public class ImportExcel {
 
     public static void Import() throws Exception {
 
-        Workbook workbook = new Workbook("C:\\Users\\Artem\\Desktop\\ItemPrices.xlsx");
+        Workbook workbook = new Workbook("C:\\Users\\Artem\\Desktop\\SCAuction\\ItemPrices.xlsx");
         Worksheet worksheet = workbook.getWorksheets().get(0);
         Cells cells = worksheet.getCells();
 
