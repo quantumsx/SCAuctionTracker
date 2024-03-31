@@ -71,6 +71,7 @@ public class ApiCall {
                                 textToSend = commonPart;
                                 synchronized(Main.outputArray){
                                     Main.outputArray.add(textToSend);
+                                    Main.outputArrayNew.put(NewItemName,item.getBuyoutPrice());
                                 }
                                 //Main.outputArrayNew.put(NewItemName,textToSend);
                             }

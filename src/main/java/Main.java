@@ -27,6 +27,7 @@ public class Main {
 
         int numThreads = 3;
 
+
         List<Runnable> tasks = new ArrayList<>();
 
         while (true) {
@@ -35,6 +36,7 @@ public class Main {
             for (Map.Entry<String, String> entry : NameIdPairs.entrySet()) {
                 String token = getNewToken();
                 tasks.add(new ApiThread(entry.getValue(), entry.getKey(), token));
+
             }
 
             ExecutorService executor = Executors.newFixedThreadPool(numThreads);
@@ -51,15 +53,33 @@ public class Main {
                 e.printStackTrace();
             }
 
+            ScanImage scanImage = new ScanImage();
+
+            if(!outputArrayNew.isEmpty()) {
+
+                Map.Entry<String, Long> firstEntry = outputArrayNew.entrySet().iterator().next();
+
+                String key = firstEntry.getKey();
+                Long value = firstEntry.getValue();
+
+                System.out.println(value);
+                scanImage.pressButtons(key, String.valueOf(value));
+
+                outputArrayNew.clear();
+            }
+
             sendToTelegram();
             LocalTime currentTime = LocalTime.now();
             System.out.println("Test" + " " + currentTime);
+
+            // Thread.sleep (5000);
 
         }
     }
 
 
     static final ArrayList<String> outputArray = new ArrayList<String>();
+    static Map<String, Long> outputArrayNew = new HashMap<>();
 
     public static void sendToTelegram() throws IOException, InterruptedException {
         String separator = "===================";
